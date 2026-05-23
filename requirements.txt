@@ -1,0 +1,11 @@
+cryptography
+pycryptodome
+argon2-cffi
+flask
+requests
+rich
+pytest
+qrcode[pil]
+pyzbar
+pillow
+numpy

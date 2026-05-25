@@ -6,6 +6,6 @@ requests
 rich
 pytest
 qrcode[pil]
-pyzbar
+opencv-python
 pillow
 numpy

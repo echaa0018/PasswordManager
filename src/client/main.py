@@ -40,6 +40,42 @@ def _handle_create() -> None:
     display_success(f"Vault created for '{username}'.")
     display_recovery_share(recovery)
 
+    if confirm_action(
+        "Also generate visual cryptography shares "
+        "(2 PNG images that reveal a QR code only when physically stacked)?"
+    ):
+        _generate_visual_shares(recovery, username)
+
+
+def _generate_visual_shares(recovery: str, username: str) -> None:
+    try:
+        from bonus.visual_crypto import (
+            recovery_share_to_qr,
+            save_shares,
+            split_qr_visual,
+        )
+    except ImportError as exc:
+        display_error(f"Visual crypto module unavailable: {exc}")
+        return
+
+    console.print("[dim]Building QR and splitting into visual cryptography shares...[/dim]")
+    qr = recovery_share_to_qr(recovery)
+    share1, share2 = split_qr_visual(qr)
+    out_dir = f"data/client/vc_{username}"
+    p1, p2 = save_shares(share1, share2, out_dir=out_dir)
+    display_success(f"Wrote visual shares to:\n  {p1}\n  {p2}")
+    console.print()
+    console.print("[bold yellow]Recommended visual share handling:[/bold yellow]")
+    console.print("[yellow]  1. Print both PNGs on paper or transparency sheets.[/yellow]")
+    console.print("[yellow]  2. Store the two printouts in different physical locations[/yellow]")
+    console.print("[yellow]     (e.g., one at home, one with a trusted person).[/yellow]")
+    console.print("[yellow]  3. Delete the digital PNG files after printing, because keeping[/yellow]")
+    console.print("[yellow]     both files together defeats the purpose of splitting.[/yellow]")
+    console.print("[yellow]  4. To recover, physically overlay the two prints, scan the[/yellow]")
+    console.print("[yellow]     resulting QR with any phone, then paste the decoded[/yellow]")
+    console.print("[yellow]     string into Login (Backup) as your recovery share.[/yellow]")
+
+
 
 def _handle_login_normal() -> SessionState | None:
     username = prompt_username()

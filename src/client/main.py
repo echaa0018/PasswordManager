@@ -42,9 +42,7 @@ def _handle_create() -> None:
     display_success("Vault created successfully!")
     display_recovery_share(recovery)
     
-    # -------------------------------------------------------------------------
-    # INTEGRASI BONUS: KRIPTOGRAFI VISUAL & PROMPT PENGHAPUSAN SHARE
-    # -------------------------------------------------------------------------
+
     if recovery and confirm_action("Apakah mau mengenerate QR?"):
         try:
             # Jalankan pembuatan QR share secara otomatis ke folder vc_<username>
@@ -62,7 +60,6 @@ def _handle_create() -> None:
                
         except Exception as e:
             display_error(f"Gagal menjalankan alur kriptografi visual: {e}")
-    # -------------------------------------------------------------------------
 
     display_info("You can now login using Normal Mode.")
 
@@ -210,7 +207,6 @@ def _handle_reveal(session: SessionState) -> None:
 
     console.print()
 
-    # === INTEGRASI DENGAN PYPERCLIP + KONFIRMASI ===
     if confirm_action("Apakah Anda ingin menyalin password ini ke clipboard?"):
         try:
             import pyperclip
@@ -223,7 +219,6 @@ def _handle_reveal(session: SessionState) -> None:
             display_error(f"Gagal menyalin password ke clipboard: {e}")
     else:
         display_info("Penyalinan ke clipboard dibatalkan.")
-    # ===============================================
     
     console.print()
 

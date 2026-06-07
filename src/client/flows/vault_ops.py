@@ -12,9 +12,9 @@ def _persist(session: SessionState) -> bool:
     if not api_client.update_vault(session.username, encrypted_vault, vault_nonce):
         return False
 
-    local_store.save_backup_vault(encrypted_vault, vault_nonce)
+    # PERBAIKAN: Kirimkan session.username agar backup lokal masuk ke folder user yang tepat
+    local_store.save_backup_vault(session.username, encrypted_vault, vault_nonce)
     return True
-
 
 def add_password(
     session: SessionState,

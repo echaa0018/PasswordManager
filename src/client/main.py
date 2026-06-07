@@ -20,7 +20,9 @@ from client.ui.prompts import (
     prompt_username,
 )
 from crypto.csprng import generate_password
-
+from bonus.visual_crypto import run_visual_crypto_flow
+from pathlib import Path
+import os
 
 def _handle_create() -> None:
     if not api_client.is_server_available():
@@ -37,43 +39,32 @@ def _handle_create() -> None:
         display_error("Vault creation failed. The username may already exist.")
         return
 
-    display_success(f"Vault created for '{username}'.")
+    display_success("Vault created successfully!")
     display_recovery_share(recovery)
+    
+    # -------------------------------------------------------------------------
+    # INTEGRASI BONUS: KRIPTOGRAFI VISUAL & PROMPT PENGHAPUSAN SHARE
+    # -------------------------------------------------------------------------
+    if recovery and confirm_action("Apakah mau mengenerate QR?"):
+        try:
+            # Jalankan pembuatan QR share secara otomatis ke folder vc_<username>
+            run_visual_crypto_flow(recovery, username)
+            console.print("[bold yellow]Recommended visual share handling:[/bold yellow]")
+            console.print("[yellow]  1. Print both PNGs on paper or transparency sheets.[/yellow]")
+            console.print("[yellow]  2. Store the two printouts in different physical locations[/yellow]")
+            console.print("[yellow]     (e.g., one at home, one with a trusted person).[/yellow]")
+            console.print("[yellow]  3. Delete the digital PNG files after printing, because keeping[/yellow]")
+            console.print("[yellow]     both files together defeats the purpose of splitting.[/yellow]")
+            console.print("[yellow]  4. To recover, physically overlay the two prints, scan the[/yellow]")
+            console.print("[yellow]     resulting QR with any phone, then paste the decoded[/yellow]")
+            console.print("[yellow]     string into Login (Backup) as your recovery share.[/yellow]")
+           
+               
+        except Exception as e:
+            display_error(f"Gagal menjalankan alur kriptografi visual: {e}")
+    # -------------------------------------------------------------------------
 
-    if confirm_action(
-        "Also generate visual cryptography shares "
-        "(2 PNG images that reveal a QR code only when physically stacked)?"
-    ):
-        _generate_visual_shares(recovery, username)
-
-
-def _generate_visual_shares(recovery: str, username: str) -> None:
-    try:
-        from bonus.visual_crypto import (
-            recovery_share_to_qr,
-            save_shares,
-            split_qr_visual,
-        )
-    except ImportError as exc:
-        display_error(f"Visual crypto module unavailable: {exc}")
-        return
-
-    console.print("[dim]Building QR and splitting into visual cryptography shares...[/dim]")
-    qr = recovery_share_to_qr(recovery)
-    share1, share2 = split_qr_visual(qr)
-    out_dir = f"data/client/vc_{username}"
-    p1, p2 = save_shares(share1, share2, out_dir=out_dir)
-    display_success(f"Wrote visual shares to:\n  {p1}\n  {p2}")
-    console.print()
-    console.print("[bold yellow]Recommended visual share handling:[/bold yellow]")
-    console.print("[yellow]  1. Print both PNGs on paper or transparency sheets.[/yellow]")
-    console.print("[yellow]  2. Store the two printouts in different physical locations[/yellow]")
-    console.print("[yellow]     (e.g., one at home, one with a trusted person).[/yellow]")
-    console.print("[yellow]  3. Delete the digital PNG files after printing, because keeping[/yellow]")
-    console.print("[yellow]     both files together defeats the purpose of splitting.[/yellow]")
-    console.print("[yellow]  4. To recover, physically overlay the two prints, scan the[/yellow]")
-    console.print("[yellow]     resulting QR with any phone, then paste the decoded[/yellow]")
-    console.print("[yellow]     string into Login (Backup) as your recovery share.[/yellow]")
+    display_info("You can now login using Normal Mode.")
 
 
 
@@ -192,15 +183,49 @@ def _handle_delete(session: SessionState) -> None:
 
 
 def _handle_reveal(session: SessionState) -> None:
-    entries = session.vault.list_entries()
-    entry_id = show_entry_selector(entries)
-    if entry_id is None:
+    if session.vault is None:
+        display_error("No vault loaded.")
         return
-    target = session.vault.get_entry(entry_id)
-    console.print(f"[cyan]{target.service}[/cyan] / [green]{target.username}[/green]")
-    console.print(f"[bold magenta]{target.password}[/bold magenta]")
-    if target.notes:
-        console.print(f"[dim]Notes:[/dim] {target.notes}")
+
+    entries = session.vault.list_entries()
+    if not entries:
+        display_info("No entries in vault.")
+        return
+
+    selected_id = show_entry_selector(entries)
+    if selected_id is None:
+        return
+
+    entry = session.vault.get_entry(selected_id)
+    if entry is None:
+        display_error("Entry not found.")
+        return
+
+    # Tampilkan detail informasi akun ke console
+    console.print(f"\n[bold cyan]Service:[/bold cyan] {entry.service}")
+    console.print(f"[bold cyan]Username:[/bold cyan] {entry.username}")
+    console.print(f"[bold cyan]Password:[/bold cyan] {entry.password}")
+    if entry.notes:
+        console.print(f"[bold cyan]Notes:[/bold cyan] {entry.notes}")
+
+    console.print()
+
+    # === INTEGRASI DENGAN PYPERCLIP + KONFIRMASI ===
+    if confirm_action("Apakah Anda ingin menyalin password ini ke clipboard?"):
+        try:
+            import pyperclip
+            
+            pyperclip.copy(entry.password)
+            display_success("Password berhasil disalin ke clipboard!")
+        except ImportError:
+            display_error("Gagal: Pustaka 'pyperclip' belum terinstal. Silakan jalankan 'pip install pyperclip'.")
+        except Exception as e:
+            display_error(f"Gagal menyalin password ke clipboard: {e}")
+    else:
+        display_info("Penyalinan ke clipboard dibatalkan.")
+    # ===============================================
+    
+    console.print()
 
 
 def _vault_loop(session: SessionState) -> None:

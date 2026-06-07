@@ -47,6 +47,7 @@ qrcode[pil]
 opencv-python
 pillow
 numpy
+pyperclip
 ```
 
 ## How to Run
